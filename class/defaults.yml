@@ -134,7 +134,7 @@ parameters:
                       (
                         sum by (namespace, pod, container, cluster) (
                           kube_pod_container_resource_requests{resource="memory", job="kube-state-metrics"}
-                        ) > 0
+                        ) >= 50 * 1024 * 1024
                       )
                     )
                     %(teamJoin)s
@@ -166,7 +166,7 @@ parameters:
                       (
                         sum by (namespace, pod, container, cluster) (
                           kube_pod_container_resource_requests{resource="cpu", job="kube-state-metrics"}
-                        ) > 0
+                        ) >= 0.05
                       )
                     )
                     %(teamJoin)s
