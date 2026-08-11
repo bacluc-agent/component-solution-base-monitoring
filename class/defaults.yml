@@ -196,4 +196,27 @@ parameters:
                   labels:
                     severity: warning
 
+            backup-rules:
+              rules:
+                K8upJob:
+                  annotations:
+                    description: |
+                      There was no successful "{{ $labels.jobType }}" job in the
+                      last 36 hours in the `{{ $labels.namespace }}` namespace.
+                    summary: No successful "{{ $labels.jobType }}" job in the last 36h
+                  expr: |
+                    (
+                      sum by (namespace, jobType) (
+                        label_replace(
+                          rate(k8up_jobs_successful_counter[36h]),
+                          "namespace", "$1", "exported_namespace", "(.*)"
+                        )
+                      ) == 0
+                      %(namespaceLabelFilter)s
+                    )
+                    %(teamJoin)s
+                  for: 1h
+                  labels:
+                    severity: info
+
     alertNamePrefix: SB

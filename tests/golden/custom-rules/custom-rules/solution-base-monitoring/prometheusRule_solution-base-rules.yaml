@@ -5,6 +5,31 @@ metadata:
   namespace: custom-rules
 spec:
   groups:
+    - name: backup-rules
+      rules:
+        - alert: SB_K8upJob
+          annotations:
+            description: |
+              There was no successful "{{ $labels.jobType }}" job in the
+              last 36 hours in the `{{ $labels.namespace }}` namespace.
+            summary: No successful "{{ $labels.jobType }}" job in the last 36h
+          expr: |
+            (
+              sum by (namespace, jobType) (
+                label_replace(
+                  rate(k8up_jobs_successful_counter[36h]),
+                  "namespace", "$1", "exported_namespace", "(.*)"
+                )
+              ) == 0
+              and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="custom-rules"}
+            )
+            * on(namespace) group_left(label_syn_team) (max by (namespace, label_syn_team) (kube_namespace_labels))
+          for: 1h
+          labels:
+            severity: info
+            syn: 'true'
+            syn_component: solution-base-monitoring
+            syn_team: '{{ $labels.label_syn_team }}'
     - name: resource-rules
       rules:
         - alert: SB_KubeContainerCPURequestsTooHigh
