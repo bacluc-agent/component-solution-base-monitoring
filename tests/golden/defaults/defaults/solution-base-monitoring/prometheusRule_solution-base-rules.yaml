@@ -30,6 +30,25 @@ spec:
             syn: 'true'
             syn_component: solution-base-monitoring
             syn_team: '{{ $labels.label_syn_team }}'
+    - name: kube-state-rules
+      rules:
+        - alert: SB_KubeNamespaceNotActive
+          annotations:
+            description: |
+              Namespace {{ $labels.namespace }} is in phase {{ $labels.phase }}.
+            summary: Namespace is not Active.
+          expr: |
+            (
+              kube_namespace_status_phase{job="kube-state-metrics", phase!="Active"} == 1
+              and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="defaults"}
+            )
+            * on(namespace) group_left(label_syn_team) (max by (namespace, label_syn_team) (kube_namespace_labels))
+          for: 5m
+          labels:
+            severity: warning
+            syn: 'true'
+            syn_component: solution-base-monitoring
+            syn_team: '{{ $labels.label_syn_team }}'
     - name: resource-rules
       rules:
         - alert: SB_KubeContainerCPURequestsTooHigh

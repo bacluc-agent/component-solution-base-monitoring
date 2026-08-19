@@ -219,4 +219,21 @@ parameters:
                   labels:
                     severity: info
 
+            kube-state-rules:
+              rules:
+                KubeNamespaceNotActive:
+                  annotations:
+                    description: |
+                      Namespace {{ $labels.namespace }} is in phase {{ $labels.phase }}.
+                    summary: Namespace is not Active.
+                  expr: |
+                    (
+                      kube_namespace_status_phase{job="kube-state-metrics", phase!="Active"} == 1
+                      %(namespaceLabelFilter)s
+                    )
+                    %(teamJoin)s
+                  for: 5m
+                  labels:
+                    severity: warning
+
     alertNamePrefix: SB
