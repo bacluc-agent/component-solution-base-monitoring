@@ -57,7 +57,7 @@ spec:
               (
                 sum by (namespace, pod, container, cluster) (
                   kube_pod_container_resource_requests{resource="cpu", job="kube-state-metrics"}
-                ) > 0.05
+                ) >= 0.05
               )
             )
             * on(namespace) group_left(label_syn_team) (max by (namespace, label_syn_team) (kube_namespace_labels))
