@@ -17,7 +17,7 @@ spec:
             (
               sum by (namespace, jobType) (
                 label_replace(
-                  rate(k8up_jobs_successful_counter{jobType=~"^(?!prune$).*$"}[36h]),
+                  rate(k8up_jobs_successful_counter{jobType!="prune"}[36h]),
                   "namespace", "$1", "exported_namespace", "(.*)"
                 )
               ) == 0
