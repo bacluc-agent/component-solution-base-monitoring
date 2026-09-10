@@ -208,7 +208,7 @@ parameters:
                     (
                       sum by (namespace, jobType) (
                         label_replace(
-                          rate(k8up_jobs_successful_counter[36h]),
+                          rate(k8up_jobs_successful_counter{jobType!="prune"}[36h]),
                           "namespace", "$1", "exported_namespace", "(.*)"
                         )
                       ) == 0
@@ -218,6 +218,26 @@ parameters:
                   for: 1h
                   labels:
                     severity: info
+                K8upPruneJob:
+                  annotations:
+                    description: |
+                      There was no successful "prune" job in the
+                      last 11 days in the `{{ $labels.namespace }}` namespace.
+                    summary: No successful "prune" job in the last 11 days
+                  expr: |
+                    (
+                      sum by (namespace, jobType) (
+                        label_replace(
+                          rate(k8up_jobs_successful_counter{jobType="prune"}[264h]),
+                          "namespace", "$1", "exported_namespace", "(.*)"
+                        )
+                      ) == 0
+                      %(namespaceLabelFilter)s
+                    )
+                    %(teamJoin)s
+                  for: 1h
+                  labels:
+                    severity: warning
 
             kube-state-rules:
               rules:
