@@ -34,6 +34,8 @@ parameters:
       container_readiness_flap_for: 15m
       k8up_job_window: 36h
       k8up_job_for: 1h
+      k8up_prune_job_window: 264h
+      k8up_prune_job_for: 1h
       kube_namespace_not_active_for: 5m
 
     prometheusRules:
@@ -230,7 +232,7 @@ parameters:
                     (
                       sum by (namespace, jobType) (
                         label_replace(
-                          rate(k8up_jobs_successful_counter[%(k8up_job_window)s]),
+                          rate(k8up_jobs_successful_counter{jobType!="prune"}[%(k8up_job_window)s]),
                           "namespace", "$1", "exported_namespace", "(.*)"
                         )
                       ) == 0
@@ -240,6 +242,26 @@ parameters:
                   for: "%(k8up_job_for)s"
                   labels:
                     severity: info
+                K8upPruneJob:
+                  annotations:
+                    description: |
+                      There was no successful "prune" job in the
+                      last 11 days in the `{{ $labels.namespace }}` namespace.
+                    summary: No successful "prune" job in the last 11 days
+                  expr: |
+                    (
+                      sum by (namespace, jobType) (
+                        label_replace(
+                           rate(k8up_jobs_successful_counter{jobType="prune"}[%(k8up_prune_job_window)s]),
+                          "namespace", "$1", "exported_namespace", "(.*)"
+                        )
+                      ) == 0
+                      %(namespaceLabelFilter)s
+                    )
+                    %(teamJoin)s
+                   for: "%(k8up_prune_job_for)s"
+                  labels:
+                    severity: warning
 
             kube-state-rules:
               rules:

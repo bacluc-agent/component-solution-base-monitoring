@@ -38,6 +38,8 @@ Alert thresholds and evaluation windows can be overridden per instance below the
 | `container_readiness_flap_for` | `15m` | Required duration for a readiness flap
 | `k8up_job_window` | `36h` | Backup success measurement window
 | `k8up_job_for` | `1h` | Required duration without a successful backup
+| `k8up_prune_job_window` | `264h` | Prune job success measurement window
+| `k8up_prune_job_for` | `1h` | Required duration without a successful prune job
 | `kube_namespace_not_active_for` | `5m` | Required duration for an inactive namespace
 |===
 
