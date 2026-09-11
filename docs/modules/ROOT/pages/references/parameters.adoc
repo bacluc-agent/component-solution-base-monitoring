@@ -25,14 +25,20 @@ Alert thresholds and evaluation windows can be overridden per instance below the
 [cols="1,1,3"]
 |===
 | Parameter | Default | Description
+| `rate_window` | `5m` | Rate measurement window
 | `container_memory_usage_high` | `0.9` | Memory limit usage ratio
 | `container_memory_usage_high_for` | `30m` | Required duration for high memory usage
 | `container_cpu_usage_high` | `0.9` | CPU limit usage ratio
 | `container_cpu_usage_high_for` | `30m` | Required duration for high CPU usage
 | `container_memory_requests_too_high` | `0.2` | Memory request usage ratio
+| `container_memory_requests_too_high_minimum` | `50` | Minimum memory request in MiB
 | `container_memory_requests_too_high_for` | `36h` | Required duration for high memory request
 | `container_cpu_requests_too_high` | `0.2` | CPU request usage ratio
+| `container_cpu_requests_too_high_minimum` | `0.05` | Minimum CPU request
 | `container_cpu_requests_too_high_for` | `36h` | Required duration for high CPU request
+| `container_oom_killed_window` | `10m` | OOMKilled measurement window
+| `container_oom_killed_restart` | `1` | Minimum restart count for an OOMKilled alert
+| `container_oom_killed_for` | `15m` | Required duration for an OOMKilled alert
 | `container_readiness_flap_changes` | `4` | Readiness changes in the window
 | `container_readiness_flap_window` | `15m` | Readiness flap measurement window
 | `container_readiness_flap_for` | `15m` | Required duration for a readiness flap

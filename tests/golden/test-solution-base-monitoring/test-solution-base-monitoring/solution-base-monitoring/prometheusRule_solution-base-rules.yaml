@@ -201,7 +201,7 @@ spec:
                 sum by (namespace, pod, container, cluster) (
                   container_spec_memory_limit_bytes{container!="",container!="POD",job="kubelet",metrics_path="/metrics/cadvisor"}
                 )
-              ) > 0.9
+              ) > 0.8
               and on (namespace, pod, container, cluster)
               (
                 sum by (namespace, pod, container, cluster) (
@@ -210,7 +210,7 @@ spec:
               )
             )
             * on(namespace) group_left(label_syn_team) (max by (namespace, label_syn_team) (kube_namespace_labels))
-          for: 30m
+          for: 15m
           labels:
             severity: warning
             syn: 'true'

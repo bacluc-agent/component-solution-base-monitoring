@@ -19,15 +19,15 @@ parameters:
       container_oom_killed_window: 10m
       container_oom_killed_restart: 1
       container_oom_killed_for: 15m
-      container_memory_usage_high: 0.9
+      container_memory_usage_high: '0.9'
       container_memory_usage_high_for: 30m
-      container_cpu_usage_high: 0.9
+      container_cpu_usage_high: '0.9'
       container_cpu_usage_high_for: 30m
-      container_memory_requests_too_high: 0.2
-      container_memory_requests_too_high_minimum: 50
+      container_memory_requests_too_high: '0.2'
+      container_memory_requests_too_high_minimum: '50'
       container_memory_requests_too_high_for: 36h
-      container_cpu_requests_too_high: 0.2
-      container_cpu_requests_too_high_minimum: 0.05
+      container_cpu_requests_too_high: '0.2'
+      container_cpu_requests_too_high_minimum: '0.05'
       container_cpu_requests_too_high_for: 36h
       container_readiness_flap_changes: 4
       container_readiness_flap_window: 15m
@@ -252,14 +252,14 @@ parameters:
                     (
                       sum by (namespace, jobType) (
                         label_replace(
-                           rate(k8up_jobs_successful_counter{jobType="prune"}[%(k8up_prune_job_window)s]),
+                          rate(k8up_jobs_successful_counter{jobType="prune"}[%(k8up_prune_job_window)s]),
                           "namespace", "$1", "exported_namespace", "(.*)"
                         )
                       ) == 0
                       %(namespaceLabelFilter)s
                     )
                     %(teamJoin)s
-                   for: "%(k8up_prune_job_for)s"
+                  for: "%(k8up_prune_job_for)s"
                   labels:
                     severity: warning
 
