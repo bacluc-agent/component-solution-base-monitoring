@@ -53,10 +53,10 @@ local renderAlertName(alertName) = alertNamePrefix + '_' + alertName;
 local patchRule(alertName, r) =
   std.mergePatch(
     { alert: renderAlertName(alertName), labels: defaultRuleLabels },
-    std.mergePatch(r, { expr: r.expr % {
-      namespaceLabelFilter: namespaceLabelFilter,
-      teamJoin: teamJoin,
-    } }),
+     std.mergePatch(r, { expr: r.expr % ({
+       namespaceLabelFilter: namespaceLabelFilter,
+       teamJoin: teamJoin,
+     } + params.thresholds) }),
   );
 
 local buildManifest(manifestName, manifestData) = {

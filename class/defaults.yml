@@ -14,6 +14,28 @@ parameters:
       label: vshn_net_solution_monitoring
       label_value: ${_instance}
 
+    thresholds:
+      rate_window: 5m
+      container_oom_killed_window: 10m
+      container_oom_killed_restart: 1
+      container_oom_killed_for: 15m
+      container_memory_usage_high: 0.9
+      container_memory_usage_high_for: 30m
+      container_cpu_usage_high: 0.9
+      container_cpu_usage_high_for: 30m
+      container_memory_requests_too_high: 0.2
+      container_memory_requests_too_high_minimum: 50
+      container_memory_requests_too_high_for: 36h
+      container_cpu_requests_too_high: 0.2
+      container_cpu_requests_too_high_minimum: 0.05
+      container_cpu_requests_too_high_for: 36h
+      container_readiness_flap_changes: 4
+      container_readiness_flap_window: 15m
+      container_readiness_flap_for: 15m
+      k8up_job_window: 36h
+      k8up_job_for: 1h
+      kube_namespace_not_active_for: 5m
+
     prometheusRules:
       solution-base-rules:
         spec:
@@ -34,13 +56,13 @@ parameters:
                         (kube_pod_container_status_restarts_total{job="kube-state-metrics"}
                         %(namespaceLabelFilter)s)
                         -
-                        (kube_pod_container_status_restarts_total{job="kube-state-metrics"} offset 10m)
-                      ) >= 1
+                        (kube_pod_container_status_restarts_total{job="kube-state-metrics"} offset %(container_oom_killed_window)s)
+                      ) >= %(container_oom_killed_restart)s
                       and ignoring(reason)
-                      (min_over_time(kube_pod_container_status_last_terminated_reason{reason="OOMKilled", job="kube-state-metrics"}[10m]) == 1)
+                      (min_over_time(kube_pod_container_status_last_terminated_reason{reason="OOMKilled", job="kube-state-metrics"}[%(container_oom_killed_window)s]) == 1)
                     )
                     %(teamJoin)s
-                  for: 15m
+                  for: "%(container_oom_killed_for)s"
                   labels:
                     severity: warning
                 KubeContainerMemoryUsageHigh:
@@ -63,7 +85,7 @@ parameters:
                         sum by (namespace, pod, container, cluster) (
                           container_spec_memory_limit_bytes{container!="",container!="POD",job="kubelet",metrics_path="/metrics/cadvisor"}
                         )
-                      ) > 0.9
+                      ) > %(container_memory_usage_high)s
                       and on (namespace, pod, container, cluster)
                       (
                         sum by (namespace, pod, container, cluster) (
@@ -72,7 +94,7 @@ parameters:
                       )
                     )
                     %(teamJoin)s
-                  for: 30m
+                  for: "%(container_memory_usage_high_for)s"
                   labels:
                     severity: warning
                 KubeContainerCPUUsageHigh:
@@ -86,7 +108,7 @@ parameters:
                       (
                         (
                           sum by (namespace, pod, container, cluster) (
-                            rate(container_cpu_usage_seconds_total{container!="",container!="POD",job="kubelet",metrics_path="/metrics/cadvisor"}[5m])
+                            rate(container_cpu_usage_seconds_total{container!="",container!="POD",job="kubelet",metrics_path="/metrics/cadvisor"}[%(rate_window)s])
                           )
                           %(namespaceLabelFilter)s
                         )
@@ -97,7 +119,7 @@ parameters:
                           /
                           container_spec_cpu_period{container!="",container!="POD",job="kubelet",metrics_path="/metrics/cadvisor"}
                         )
-                      ) > 0.9
+                      ) > %(container_cpu_usage_high)s
                       and on (namespace, pod, container, cluster)
                       (
                         sum by (namespace, pod, container, cluster) (
@@ -106,7 +128,7 @@ parameters:
                       )
                     )
                     %(teamJoin)s
-                  for: 30m
+                  for: "%(container_cpu_usage_high_for)s"
                   labels:
                     severity: warning
                 KubeContainerMemoryRequestsTooHigh:
@@ -129,16 +151,16 @@ parameters:
                         sum by (namespace, pod, container, cluster) (
                           kube_pod_container_resource_requests{resource="memory", job="kube-state-metrics"}
                         )
-                      ) < 0.2
+                      ) < %(container_memory_requests_too_high)s
                       and on (namespace, pod, container, cluster)
                       (
                         sum by (namespace, pod, container, cluster) (
                           kube_pod_container_resource_requests{resource="memory", job="kube-state-metrics"}
-                        ) >= 50 * 1024 * 1024
+                        ) >= %(container_memory_requests_too_high_minimum)s * 1024 * 1024
                       )
                     )
                     %(teamJoin)s
-                  for: 36h
+                  for: "%(container_memory_requests_too_high_for)s"
                   labels:
                     severity: warning
                 KubeContainerCPURequestsTooHigh:
@@ -152,7 +174,7 @@ parameters:
                       (
                         (
                           sum by (namespace, pod, container, cluster) (
-                            rate(container_cpu_usage_seconds_total{container!="",container!="POD",job="kubelet",metrics_path="/metrics/cadvisor"}[5m])
+                            rate(container_cpu_usage_seconds_total{container!="",container!="POD",job="kubelet",metrics_path="/metrics/cadvisor"}[%(rate_window)s])
                           )
                           %(namespaceLabelFilter)s
                         )
@@ -161,16 +183,16 @@ parameters:
                         sum by (namespace, pod, container, cluster) (
                           kube_pod_container_resource_requests{resource="cpu", job="kube-state-metrics"}
                         )
-                      ) < 0.2
+                      ) < %(container_cpu_requests_too_high)s
                       and on (namespace, pod, container, cluster)
                       (
                         sum by (namespace, pod, container, cluster) (
                           kube_pod_container_resource_requests{resource="cpu", job="kube-state-metrics"}
-                        ) >= 0.05
+                        ) >= %(container_cpu_requests_too_high_minimum)s
                       )
                     )
                     %(teamJoin)s
-                  for: 36h
+                  for: "%(container_cpu_requests_too_high_for)s"
                   labels:
                     severity: warning
 
@@ -186,13 +208,13 @@ parameters:
                     summary: Container readiness is flapping.
                   expr: |
                     (
-                      (changes(kube_pod_container_status_ready{job="kube-state-metrics"}[15m]) >= 4)
+                      (changes(kube_pod_container_status_ready{job="kube-state-metrics"}[%(container_readiness_flap_window)s]) >= %(container_readiness_flap_changes)s)
                       %(namespaceLabelFilter)s
                       and on (namespace, pod, container, cluster)
                       (kube_pod_container_status_ready{job="kube-state-metrics"} == 0)
                     )
                     %(teamJoin)s
-                  for: 15m
+                  for: "%(container_readiness_flap_for)s"
                   labels:
                     severity: warning
 
@@ -208,14 +230,14 @@ parameters:
                     (
                       sum by (namespace, jobType) (
                         label_replace(
-                          rate(k8up_jobs_successful_counter[36h]),
+                          rate(k8up_jobs_successful_counter[%(k8up_job_window)s]),
                           "namespace", "$1", "exported_namespace", "(.*)"
                         )
                       ) == 0
                       %(namespaceLabelFilter)s
                     )
                     %(teamJoin)s
-                  for: 1h
+                  for: "%(k8up_job_for)s"
                   labels:
                     severity: info
 
@@ -232,7 +254,7 @@ parameters:
                       %(namespaceLabelFilter)s
                     )
                     %(teamJoin)s
-                  for: 5m
+                  for: "%(kube_namespace_not_active_for)s"
                   labels:
                     severity: warning
 
