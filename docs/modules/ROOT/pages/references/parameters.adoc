@@ -20,42 +20,57 @@ namespace: example-namespace
 
 == Alert thresholds
 
-Alert thresholds and evaluation windows can be overridden per instance below the `thresholds` map. Values are inserted only into PromQL expressions; annotation text remains unchanged.
+Rule-specific thresholds are declared inline in the rule block, with defaults in `class/defaults.yml`. They can be overridden per instance under `prometheusRules...rules.<RuleName>`. Shared thresholds (used by more than one rule) live under the `thresholds` map. Values are inserted only into PromQL expressions; annotation text remains unchanged.
+
+=== Shared thresholds
 
 [cols="1,1,3"]
 |===
 | Parameter | Default | Description
 | `rate_window` | `5m` | Rate measurement window
-| `container_memory_usage_high` | `0.9` | Memory limit usage ratio
-| `container_memory_usage_high_for` | `30m` | Required duration for high memory usage
-| `container_cpu_usage_high` | `0.9` | CPU limit usage ratio
-| `container_cpu_usage_high_for` | `30m` | Required duration for high CPU usage
-| `container_memory_requests_too_high` | `0.2` | Memory request usage ratio
-| `container_memory_requests_too_high_minimum` | `50` | Minimum memory request in MiB
-| `container_memory_requests_too_high_for` | `36h` | Required duration for high memory request
-| `container_cpu_requests_too_high` | `0.2` | CPU request usage ratio
-| `container_cpu_requests_too_high_minimum` | `0.05` | Minimum CPU request
-| `container_cpu_requests_too_high_for` | `36h` | Required duration for high CPU request
-| `container_oom_killed_window` | `10m` | OOMKilled measurement window
-| `container_oom_killed_restart` | `1` | Minimum restart count for an OOMKilled alert
-| `container_oom_killed_for` | `15m` | Required duration for an OOMKilled alert
-| `container_readiness_flap_changes` | `4` | Readiness changes in the window
-| `container_readiness_flap_window` | `15m` | Readiness flap measurement window
-| `container_readiness_flap_for` | `15m` | Required duration for a readiness flap
-| `k8up_job_window` | `36h` | Backup success measurement window
-| `k8up_job_for` | `1h` | Required duration without a successful backup
-| `k8up_prune_job_window` | `264h` | Prune job success measurement window
-| `k8up_prune_job_for` | `1h` | Required duration without a successful prune job
-| `kube_namespace_not_active_for` | `5m` | Required duration for an inactive namespace
 |===
 
-=== Instance override example
+=== Per-rule thresholds
+
+[cols="1,1,2,3"]
+|===
+| Parameter | Default | Rule | Description
+| `container_memory_usage_high` | `0.9` | KubeContainerMemoryUsageHigh | Memory limit usage ratio
+| `container_memory_usage_high_for` | `30m` | KubeContainerMemoryUsageHigh | Required duration for high memory usage
+| `container_cpu_usage_high` | `0.9` | KubeContainerCPUUsageHigh | CPU limit usage ratio
+| `container_cpu_usage_high_for` | `30m` | KubeContainerCPUUsageHigh | Required duration for high CPU usage
+| `container_memory_requests_too_high` | `0.2` | KubeContainerMemoryRequestsTooHigh | Memory request usage ratio
+| `container_memory_requests_too_high_minimum` | `50` | KubeContainerMemoryRequestsTooHigh | Minimum memory request in MiB
+| `container_memory_requests_too_high_for` | `36h` | KubeContainerMemoryRequestsTooHigh | Required duration for high memory request
+| `container_cpu_requests_too_high` | `0.2` | KubeContainerCPURequestsTooHigh | CPU request usage ratio
+| `container_cpu_requests_too_high_minimum` | `0.05` | KubeContainerCPURequestsTooHigh | Minimum CPU request
+| `container_cpu_requests_too_high_for` | `36h` | KubeContainerCPURequestsTooHigh | Required duration for high CPU request
+| `container_oom_killed_window` | `10m` | KubeContainerOOMKilled | OOMKilled measurement window
+| `container_oom_killed_restart` | `1` | KubeContainerOOMKilled | Minimum restart count for an OOMKilled alert
+| `container_oom_killed_for` | `15m` | KubeContainerOOMKilled | Required duration for an OOMKilled alert
+| `container_readiness_flap_changes` | `4` | KubeContainerReadinessFlap | Readiness changes in the window
+| `container_readiness_flap_window` | `15m` | KubeContainerReadinessFlap | Readiness flap measurement window
+| `container_readiness_flap_for` | `15m` | KubeContainerReadinessFlap | Required duration for a readiness flap
+| `k8up_job_window` | `36h` | K8upJob | Backup success measurement window
+| `k8up_job_for` | `1h` | K8upJob | Required duration without a successful backup
+| `k8up_prune_job_window` | `264h` | K8upPruneJob | Prune job success measurement window
+| `k8up_prune_job_for` | `1h` | K8upPruneJob | Required duration without a successful prune job
+| `kube_namespace_not_active_for` | `5m` | KubeNamespaceNotActive | Required duration for an inactive namespace
+|===
+
+=== Override example
 
 [source,yaml]
 ----
 parameters:
   solution_base_monitoring:
-    thresholds:
-      container_memory_usage_high: 0.8
-      container_memory_usage_high_for: 15m
+    prometheusRules:
+      solution-base-rules:
+        spec:
+          groups:
+            resource-rules:
+              rules:
+                KubeContainerMemoryUsageHigh:
+                  container_memory_usage_high: '0.8'
+                  container_memory_usage_high_for: 15m
 ----
