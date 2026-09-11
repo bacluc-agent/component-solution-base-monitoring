@@ -1,25 +1,11 @@
 parameters:
   solution_base_monitoring:
-    thresholds:
-      rate_window: 5m
-      container_oom_killed_window: 10m
-      container_oom_killed_restart: 1
-      container_oom_killed_for: 15m
-      container_memory_usage_high: '0.8'
-      container_memory_usage_high_for: 15m
-      container_cpu_usage_high: '0.9'
-      container_cpu_usage_high_for: 30m
-      container_memory_requests_too_high: '0.2'
-      container_memory_requests_too_high_minimum: '50'
-      container_memory_requests_too_high_for: 36h
-      container_cpu_requests_too_high: '0.2'
-      container_cpu_requests_too_high_minimum: '0.05'
-      container_cpu_requests_too_high_for: 36h
-      container_readiness_flap_changes: 4
-      container_readiness_flap_window: 15m
-      container_readiness_flap_for: 15m
-      k8up_job_window: 36h
-      k8up_job_for: 1h
-      k8up_prune_job_window: 264h
-      k8up_prune_job_for: 1h
-      kube_namespace_not_active_for: 5m
+    prometheusRules:
+      solution-base-rules:
+        spec:
+          groups:
+            resource-rules:
+              rules:
+                KubeContainerMemoryUsageHigh:
+                  container_memory_usage_high: '0.8'
+                  container_memory_usage_high_for: 15m
