@@ -74,3 +74,28 @@ parameters:
                   container_memory_usage_high: '0.8'
                   container_memory_usage_high_for: 15m
 ----
+
+=== Per-namespace configuration
+
+Thresholds are resolved per component instance, so each namespace/tenant class gets its own values. Create one class per monitored namespace and override the thresholds inline:
+
+[source,yaml]
+----
+# class/my-namespace.yml
+parameters:
+  solution_base_monitoring:
+    namespace: my-namespace
+    monitor_namespaces:
+      label_value: my-namespace
+    prometheusRules:
+      solution-base-rules:
+        spec:
+          groups:
+            resource-rules:
+              rules:
+                KubeContainerMemoryUsageHigh:
+                  container_memory_usage_high: '0.7'
+                  container_memory_usage_high_for: 10m
+----
+
+Float values must stay quoted (`'0.8'`): jsonnet's `%` operator renders unquoted floats as `0.80000000000000004`.
