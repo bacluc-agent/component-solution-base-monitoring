@@ -50,4 +50,4 @@ KUBENT_IMAGE    ?= ghcr.io/doitintl/kube-no-trouble:latest
 KUBENT_DOCKER   ?= $(DOCKER_CMD) $(DOCKER_ARGS) $(root_volume) --entrypoint=/app/kubent $(KUBENT_IMAGE)
 
 instance ?= defaults
-test_instances = tests/defaults.yml tests/custom-rules.yml tests/test-solution-base-monitoring.yml tests/custom-prefix.yml
+test_instances = tests/defaults.yml tests/custom-rules.yml tests/test-solution-base-monitoring.yml tests/custom-prefix.yml tests/namespace-thresholds.yml
