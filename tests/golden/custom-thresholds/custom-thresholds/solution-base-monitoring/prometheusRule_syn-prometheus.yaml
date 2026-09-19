@@ -1,0 +1,69 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: syn-prometheus
+  namespace: custom-thresholds
+spec:
+  groups:
+    - name: kubernetes-storage
+      rules:
+        - alert: SB_KubePersistentVolumeFillingUp
+          annotations:
+            description: |
+              The PersistentVolume claimed by {{ $labels.persistentvolumeclaim }} in Namespace {{ $labels.namespace }} {{ with $labels.cluster -}} on Cluster {{ . }} {{- end }} is only {{ $value | humanizePercentage }} free.
+            runbook_url: https://github.com/openshift/runbooks/blob/master/alerts/cluster-monitoring-operator/KubePersistentVolumeFillingUp.md
+            summary: PersistentVolume is filling up.
+          expr: |
+            (
+              (
+                kubelet_volume_stats_available_bytes{job="kubelet", metrics_path="/metrics"}
+                  /
+                kubelet_volume_stats_capacity_bytes{job="kubelet", metrics_path="/metrics"}
+              ) < 0.05
+              and
+              kubelet_volume_stats_used_bytes{job="kubelet", metrics_path="/metrics"}
+              and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="custom-thresholds"}
+              > 0
+              unless on(cluster, namespace, persistentvolumeclaim)
+              kube_persistentvolumeclaim_access_mode{ access_mode="ReadOnlyMany"} == 1
+              unless on(cluster, namespace, persistentvolumeclaim)
+              kube_persistentvolumeclaim_labels{label_alerts_k8s_io_kube_persistent_volume_filling_up="disabled"} == 1
+            )
+            * on(namespace) group_left(label_syn_team) (max by (namespace, label_syn_team) (kube_namespace_labels))
+          for: 1m
+          labels:
+            severity: critical
+            syn: 'true'
+            syn_component: solution-base-monitoring
+            syn_team: '{{ $labels.label_syn_team }}'
+        - alert: SB_KubePersistentVolumeFillingUpWarning
+          annotations:
+            description: |
+              Based on recent sampling, the PersistentVolume claimed by {{ $labels.persistentvolumeclaim }} in Namespace {{ $labels.namespace }} {{ with $labels.cluster -}} on Cluster {{ . }} {{- end }} is expected to fill up within four days. Currently {{ $value | humanizePercentage }} is available.
+            runbook_url: https://github.com/openshift/runbooks/blob/master/alerts/cluster-monitoring-operator/KubePersistentVolumeFillingUp.md
+            summary: PersistentVolume is filling up.
+          expr: |
+            (
+              (
+                kubelet_volume_stats_available_bytes{job="kubelet", metrics_path="/metrics"}
+                  /
+                kubelet_volume_stats_capacity_bytes{job="kubelet", metrics_path="/metrics"}
+              )
+              < 0.2
+              and
+              kubelet_volume_stats_used_bytes{job="kubelet", metrics_path="/metrics"} > 0
+              and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="custom-thresholds"}
+              and
+              predict_linear(kubelet_volume_stats_available_bytes{job="kubelet", metrics_path="/metrics"}[12h], 172800) < 0
+              unless on(cluster, namespace, persistentvolumeclaim)
+              kube_persistentvolumeclaim_access_mode{ access_mode="ReadOnlyMany"} == 1
+              unless on(cluster, namespace, persistentvolumeclaim)
+              kube_persistentvolumeclaim_labels{label_alerts_k8s_io_kube_persistent_volume_filling_up="disabled"} == 1
+            )
+            * on(namespace) group_left(label_syn_team) (max by (namespace, label_syn_team) (kube_namespace_labels))
+          for: 1h
+          labels:
+            severity: warning
+            syn: 'true'
+            syn_component: solution-base-monitoring
+            syn_team: '{{ $labels.label_syn_team }}'

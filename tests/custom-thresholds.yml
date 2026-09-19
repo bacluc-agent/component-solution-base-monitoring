@@ -1,0 +1,32 @@
+parameters:
+  solution_base_monitoring:
+    prometheusRules:
+      syn-prometheus:
+        spec:
+          groups:
+            kubernetes-storage:
+              rules:
+                KubePersistentVolumeFillingUp:
+                  pv_filling_up_critical_threshold: '0.05'
+                KubePersistentVolumeFillingUpWarning:
+                  pv_filling_up_warning_threshold: '0.2'
+                  pv_filling_up_prediction_lookback: 12h
+                  pv_filling_up_prediction_window_seconds: 172800
+      syn-kubernetes-monitoring-rules:
+        spec:
+          groups:
+            kubernetes-apps:
+              rules:
+                KubeJobNotCompleted:
+                  job_not_completed_timeout_seconds: 86400
+      solution-base-rules:
+        spec:
+          groups:
+            resource-rules:
+              rules:
+                KubeContainerMemoryUsageHigh:
+                  container_memory_usage_high: '0.95'
+            backup-rules:
+              rules:
+                K8upJob:
+                  k8up_job_window: 48h
