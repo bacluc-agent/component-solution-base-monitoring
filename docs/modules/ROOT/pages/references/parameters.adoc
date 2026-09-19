@@ -51,11 +51,16 @@ Rule-specific thresholds are declared inline in the rule block, with defaults in
 | `container_readiness_flap_changes` | `4` | KubeContainerReadinessFlap | Readiness changes in the window
 | `container_readiness_flap_window` | `15m` | KubeContainerReadinessFlap | Readiness flap measurement window
 | `container_readiness_flap_for` | `15m` | KubeContainerReadinessFlap | Required duration for a readiness flap
+| `job_not_completed_timeout_seconds` | `43200` | KubeJobNotCompleted | Job completion timeout in seconds
 | `k8up_job_window` | `36h` | K8upJob | Backup success measurement window
 | `k8up_job_for` | `1h` | K8upJob | Required duration without a successful backup
 | `k8up_prune_job_window` | `264h` | K8upPruneJob | Prune job success measurement window
 | `k8up_prune_job_for` | `1h` | K8upPruneJob | Required duration without a successful prune job
 | `kube_namespace_not_active_for` | `5m` | KubeNamespaceNotActive | Required duration for an inactive namespace
+| `pv_filling_up_critical_threshold` | `0.03` | KubePersistentVolumeFillingUp | Free space ratio for a critical alert
+| `pv_filling_up_warning_threshold` | `0.15` | KubePersistentVolumeFillingUpWarning | Free space ratio for a warning alert
+| `pv_filling_up_prediction_lookback` | `6h` | KubePersistentVolumeFillingUpWarning | Prediction lookback window
+| `pv_filling_up_prediction_window_seconds` | `4 * 24 * 3600` | KubePersistentVolumeFillingUpWarning | Prediction window in seconds
 |===
 
 === Override example
