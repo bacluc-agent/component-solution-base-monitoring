@@ -71,11 +71,11 @@ spec:
               Pod {{ $labels.namespace }}/{{ $labels.pod }} ({{ $labels.container }}) is in waiting state (reason: "CrashLoopBackOff").
             summary: Pod is crash looping.
           expr: |
-            (max_over_time(kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff", job="kube-state-metrics"}[5m])
+            (max_over_time(kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff", job="kube-state-metrics"}[2m])
             and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="custom-thresholds"} )
             * on(namespace) group_left(label_syn_team) (max by (namespace, label_syn_team) (kube_namespace_labels))
             >= 1
-          for: 15m
+          for: 10m
           labels:
             severity: warning
             syn: 'true'
