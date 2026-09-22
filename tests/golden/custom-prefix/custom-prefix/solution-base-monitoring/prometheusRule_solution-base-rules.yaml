@@ -17,7 +17,7 @@ spec:
             (
               sum by (namespace, jobType) (
                 label_replace(
-                  rate(k8up_jobs_successful_counter[36h]),
+                  rate(k8up_jobs_successful_counter{jobType!="prune"}[36h]),
                   "namespace", "$1", "exported_namespace", "(.*)"
                 )
               ) == 0
@@ -27,6 +27,29 @@ spec:
           for: 1h
           labels:
             severity: info
+            syn: 'true'
+            syn_component: solution-base-monitoring
+            syn_team: '{{ $labels.label_syn_team }}'
+        - alert: VSHN_K8upPruneJob
+          annotations:
+            description: |
+              There was no successful "prune" job in the
+              last 11 days in the `{{ $labels.namespace }}` namespace.
+            summary: No successful "prune" job in the last 11 days
+          expr: |
+            (
+              sum by (namespace, jobType) (
+                label_replace(
+                  rate(k8up_jobs_successful_counter{jobType="prune"}[264h]),
+                  "namespace", "$1", "exported_namespace", "(.*)"
+                )
+              ) == 0
+              and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="custom-prefix"}
+            )
+            * on(namespace) group_left(label_syn_team) (max by (namespace, label_syn_team) (kube_namespace_labels))
+          for: 1h
+          labels:
+            severity: warning
             syn: 'true'
             syn_component: solution-base-monitoring
             syn_team: '{{ $labels.label_syn_team }}'

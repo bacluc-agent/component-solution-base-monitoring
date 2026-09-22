@@ -50,13 +50,20 @@ local prometheusRules = std.mergePatch(openshiftRules.prometheusrule, ruleOverri
 local alertNamePrefix = params.alertNamePrefix;
 local renderAlertName(alertName) = alertNamePrefix + '_' + alertName;
 
+local prometheusRuleFields = [ 'alert', 'expr', 'for', 'labels', 'annotations', 'keep_firing_for', 'record' ];
+
 local patchRule(alertName, r) =
+  local inlineThresholds = { [k]: r[k] for k in std.objectFields(r) if !std.member(prometheusRuleFields, k) };
+  local formatDict = {
+    namespaceLabelFilter: namespaceLabelFilter,
+    teamJoin: teamJoin,
+  } + params.thresholds + inlineThresholds;
+  local rule = { [k]: r[k] for k in std.objectFields(r) if std.member(prometheusRuleFields, k) };
   std.mergePatch(
     { alert: renderAlertName(alertName), labels: defaultRuleLabels },
-    std.mergePatch(r, { expr: r.expr % {
-      namespaceLabelFilter: namespaceLabelFilter,
-      teamJoin: teamJoin,
-    } }),
+    std.mergePatch(rule, {
+      expr: r.expr % formatDict,
+    } + (if std.objectHas(r, 'for') then { 'for': r['for'] % formatDict } else {})),
   );
 
 local buildManifest(manifestName, manifestData) = {

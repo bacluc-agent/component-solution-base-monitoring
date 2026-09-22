@@ -1,0 +1,133 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: syn-kubernetes-monitoring-rules
+  namespace: custom-thresholds
+spec:
+  groups:
+    - name: kubernetes-apps
+      rules:
+        - alert: SB_KubeContainerWaiting
+          annotations:
+            description: |
+              pod/{{ $labels.pod }} in namespace {{ $labels.namespace }} on container {{ $labels.container}} has been in waiting state for longer than 1 hour. (reason: "{{ $labels.reason }}").
+            summary: Pod container waiting longer than 1 hour
+          expr: |
+            (kube_pod_container_status_waiting_reason{reason!="CrashLoopBackOff", job="kube-state-metrics"}
+            and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="custom-thresholds"} )
+            * on(namespace) group_left(label_syn_team) (max by (namespace, label_syn_team) (kube_namespace_labels))
+            > 0
+          for: 1h
+          labels:
+            severity: warning
+            syn: 'true'
+            syn_component: solution-base-monitoring
+            syn_team: '{{ $labels.label_syn_team }}'
+        - alert: SB_KubeJobNotCompleted
+          annotations:
+            description: |
+              Job {{ $labels.namespace }}/{{ $labels.job_name }} is taking more than {{ "43200" | humanizeDuration }} to complete.
+            summary: Job did not complete in time
+          expr: |
+            (
+              time() - max by (namespace, job_name, cluster) (
+                kube_job_status_start_time{job="kube-state-metrics"}
+                and
+                ( kube_job_status_active{job="kube-state-metrics"} > 0 )
+                and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="custom-thresholds"}
+                > 0
+              )
+            )
+            * on(namespace) group_left(label_syn_team) (max by (namespace, label_syn_team) (kube_namespace_labels))
+            > 86400
+          labels:
+            severity: warning
+            syn: 'true'
+            syn_component: solution-base-monitoring
+            syn_team: '{{ $labels.label_syn_team }}'
+        - alert: SB_KubePdbNotEnoughHealthyPods
+          annotations:
+            description: |
+              PDB {{ $labels.namespace }}/{{ $labels.poddisruptionbudget }} expects {{ $value }} more healthy pods. The desired number of healthy pods has not been met for at least 15m.
+            summary: PDB does not have enough healthy pods.
+          expr: |
+            (
+              kube_poddisruptionbudget_status_desired_healthy{job="kube-state-metrics"}
+              -
+              kube_poddisruptionbudget_status_current_healthy{job="kube-state-metrics"}
+              and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="custom-thresholds"}
+            )
+            * on(namespace) group_left(label_syn_team) (max by (namespace, label_syn_team) (kube_namespace_labels))
+            > 0
+          for: 15m
+          labels:
+            severity: warning
+            syn: 'true'
+            syn_component: solution-base-monitoring
+            syn_team: '{{ $labels.label_syn_team }}'
+        - alert: SB_KubePodCrashLooping
+          annotations:
+            description: |
+              Pod {{ $labels.namespace }}/{{ $labels.pod }} ({{ $labels.container }}) is in waiting state (reason: "CrashLoopBackOff").
+            summary: Pod is crash looping.
+          expr: |
+            (max_over_time(kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff", job="kube-state-metrics"}[2m])
+            and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="custom-thresholds"} )
+            * on(namespace) group_left(label_syn_team) (max by (namespace, label_syn_team) (kube_namespace_labels))
+            >= 1
+          for: 10m
+          labels:
+            severity: warning
+            syn: 'true'
+            syn_component: solution-base-monitoring
+            syn_team: '{{ $labels.label_syn_team }}'
+        - alert: SB_KubePodNotReady
+          annotations:
+            description: |
+              Pod {{ $labels.namespace }}/{{ $labels.pod }} has been in a non-ready state for longer than 15 minutes.
+            runbook_url: https://github.com/openshift/runbooks/blob/master/alerts/cluster-monitoring-operator/KubePodNotReady.md
+            summary: Pod has been in a non-ready state for more than 15 minutes.
+          expr: |
+            sum by (namespace, pod, cluster) (
+              max by(namespace, pod, cluster) (
+                kube_pod_status_phase{ job="kube-state-metrics", phase=~"Pending|Unknown"}
+                and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="custom-thresholds"}
+                unless ignoring(phase) (kube_pod_status_unschedulable{job="kube-state-metrics"} == 1)
+              ) * on(namespace, pod, cluster) group_left(owner_kind) topk by(namespace, pod, cluster) (
+                1, max by(namespace, pod, owner_kind, cluster) (kube_pod_owner{owner_kind!="Job"})
+              )
+            )
+            * on(namespace) group_left(label_syn_team) (max by (namespace, label_syn_team) (kube_namespace_labels))
+            > 0
+          for: 15m
+          labels:
+            severity: warning
+            syn: 'true'
+            syn_component: solution-base-monitoring
+            syn_team: '{{ $labels.label_syn_team }}'
+        - alert: SB_KubeStatefulSetReplicasMismatch
+          annotations:
+            description: |
+              StatefulSet {{ $labels.namespace }}/{{ $labels.statefulset }} has not matched the expected number of replicas for longer than 15 minutes.
+            summary: StatefulSet has not matched the expected number of replicas.
+          expr: |
+            (
+              (
+                kube_statefulset_status_replicas_ready{job="kube-state-metrics"}
+                !=
+                kube_statefulset_replicas{job="kube-state-metrics"}
+              )
+              and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="custom-thresholds"}
+              and (
+                changes(kube_statefulset_status_replicas_updated{job="kube-state-metrics"}[10m])
+                ==
+                0
+              )
+            )
+            * on(namespace) group_left(label_syn_team) (max by (namespace, label_syn_team) (kube_namespace_labels))
+          for: 15m
+          labels:
+            severity: warning
+            syn: 'true'
+            syn_component: solution-base-monitoring
+            syn_team: '{{ $labels.label_syn_team }}'

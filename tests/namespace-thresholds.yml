@@ -1,5 +1,8 @@
 parameters:
   solution_base_monitoring:
+    namespace: my-namespace
+    monitor_namespaces:
+      label_value: my-namespace
     prometheusRules:
       solution-base-rules:
         spec:
@@ -7,5 +10,5 @@ parameters:
             resource-rules:
               rules:
                 KubeContainerMemoryUsageHigh:
-                  container_memory_usage_high: '0.8'
-                  container_memory_usage_high_for: 15m
+                  container_memory_usage_high: '0.7'
+                  container_memory_usage_high_for: 10m

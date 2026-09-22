@@ -2,7 +2,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
   name: solution-base-rules
-  namespace: defaults
+  namespace: custom-thresholds
 spec:
   groups:
     - name: backup-rules
@@ -17,11 +17,11 @@ spec:
             (
               sum by (namespace, jobType) (
                 label_replace(
-                  rate(k8up_jobs_successful_counter{jobType!="prune"}[36h]),
+                  rate(k8up_jobs_successful_counter{jobType!="prune"}[48h]),
                   "namespace", "$1", "exported_namespace", "(.*)"
                 )
               ) == 0
-              and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="defaults"}
+              and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="custom-thresholds"}
             )
             * on(namespace) group_left(label_syn_team) (max by (namespace, label_syn_team) (kube_namespace_labels))
           for: 1h
@@ -44,7 +44,7 @@ spec:
                   "namespace", "$1", "exported_namespace", "(.*)"
                 )
               ) == 0
-              and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="defaults"}
+              and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="custom-thresholds"}
             )
             * on(namespace) group_left(label_syn_team) (max by (namespace, label_syn_team) (kube_namespace_labels))
           for: 1h
@@ -63,7 +63,7 @@ spec:
           expr: |
             (
               kube_namespace_status_phase{job="kube-state-metrics", phase!="Active"} == 1
-              and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="defaults"}
+              and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="custom-thresholds"}
             )
             * on(namespace) group_left(label_syn_team) (max by (namespace, label_syn_team) (kube_namespace_labels))
           for: 5m
@@ -87,7 +87,7 @@ spec:
                   sum by (namespace, pod, container, cluster) (
                     rate(container_cpu_usage_seconds_total{container!="",container!="POD",job="kubelet",metrics_path="/metrics/cadvisor"}[5m])
                   )
-                  and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="defaults"}
+                  and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="custom-thresholds"}
                 )
                 /
                 on (namespace, pod, container, cluster)
@@ -122,7 +122,7 @@ spec:
                   sum by (namespace, pod, container, cluster) (
                     rate(container_cpu_usage_seconds_total{container!="",container!="POD",job="kubelet",metrics_path="/metrics/cadvisor"}[5m])
                   )
-                  and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="defaults"}
+                  and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="custom-thresholds"}
                 )
                 /
                 on (namespace, pod, container, cluster)
@@ -159,7 +159,7 @@ spec:
                   sum by (namespace, pod, container, cluster) (
                     container_memory_working_set_bytes{container!="",container!="POD",job="kubelet",metrics_path="/metrics/cadvisor"}
                   )
-                  and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="defaults"}
+                  and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="custom-thresholds"}
                 )
                 /
                 on (namespace, pod, container, cluster)
@@ -194,14 +194,14 @@ spec:
                   sum by (namespace, pod, container, cluster) (
                     container_memory_working_set_bytes{container!="",container!="POD",job="kubelet",metrics_path="/metrics/cadvisor"}
                   )
-                  and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="defaults"}
+                  and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="custom-thresholds"}
                 )
                 /
                 on (namespace, pod, container, cluster)
                 sum by (namespace, pod, container, cluster) (
                   container_spec_memory_limit_bytes{container!="",container!="POD",job="kubelet",metrics_path="/metrics/cadvisor"}
                 )
-              ) > 0.9
+              ) > 0.95
               and on (namespace, pod, container, cluster)
               (
                 sum by (namespace, pod, container, cluster) (
@@ -227,7 +227,7 @@ spec:
             (
               (
                 (kube_pod_container_status_restarts_total{job="kube-state-metrics"}
-                and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="defaults"})
+                and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="custom-thresholds"})
                 -
                 (kube_pod_container_status_restarts_total{job="kube-state-metrics"} offset 10m)
               ) >= 1
@@ -253,7 +253,7 @@ spec:
           expr: |
             (
               (changes(kube_pod_container_status_ready{job="kube-state-metrics"}[15m]) >= 4)
-              and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="defaults"}
+              and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="custom-thresholds"}
               and on (namespace, pod, container, cluster)
               (kube_pod_container_status_ready{job="kube-state-metrics"} == 0)
             )
