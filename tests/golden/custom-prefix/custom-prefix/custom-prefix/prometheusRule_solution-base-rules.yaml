@@ -58,15 +58,16 @@ spec:
         - alert: VSHN_EspejoteManagedResourceNotReady
           annotations:
             description: |
-              The espejote ManagedResource {{ $labels.managedresource }} in namespace {{ $labels.namespace }} has not been reconciled successfully for 30 minutes.
+              The ManagedResource {{ $labels.managedresource }} in namespace {{ $labels.namespace }} has status {{ $labels.status }} for 30 minutes.
+              The error message is in the ManagedResource events: kubectl -n {{ $labels.namespace }} describe managedresource {{ $labels.managedresource }}
             summary: espejote failed to reconcile ManagedResource {{ $labels.managedresource
               }}.
           expr: |
             (
               label_replace(
-                espejote_managedresource_status_ready,
+                espejote_managedresource_status{status!="Ready"},
                 "namespace", "$1", "exported_namespace", "(.*)"
-              ) == 0
+              ) == 1
               and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="custom-prefix"}
             )
             * on(namespace) group_left(label_syn_team) (max by (namespace, label_syn_team) (kube_namespace_labels))

@@ -261,14 +261,15 @@ parameters:
                 EspejoteManagedResourceNotReady:
                   annotations:
                     description: |
-                      The espejote ManagedResource {{ $labels.managedresource }} in namespace {{ $labels.namespace }} has not been reconciled successfully for 30 minutes.
+                      The ManagedResource {{ $labels.managedresource }} in namespace {{ $labels.namespace }} has status {{ $labels.status }} for 30 minutes.
+                      The error message is in the ManagedResource events: kubectl -n {{ $labels.namespace }} describe managedresource {{ $labels.managedresource }}
                     summary: espejote failed to reconcile ManagedResource {{ $labels.managedresource }}.
                   expr: |
                     (
                       label_replace(
-                        espejote_managedresource_status_ready,
+                        espejote_managedresource_status{status!="Ready"},
                         "namespace", "$1", "exported_namespace", "(.*)"
-                      ) == 0
+                      ) == 1
                       %(namespaceLabelFilter)s
                     )
                     %(teamJoin)s
