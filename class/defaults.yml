@@ -256,4 +256,24 @@ parameters:
                   labels:
                     severity: warning
 
+            espejote-rules:
+              rules:
+                EspejoteManagedResourceNotReady:
+                  annotations:
+                    description: |
+                      The espejote ManagedResource {{ $labels.managedresource }} in namespace {{ $labels.namespace }} has not been reconciled successfully for 30 minutes.
+                    summary: espejote failed to reconcile ManagedResource {{ $labels.managedresource }}.
+                  expr: |
+                    (
+                      label_replace(
+                        espejote_managedresource_status_ready,
+                        "namespace", "$1", "exported_namespace", "(.*)"
+                      ) == 0
+                      %(namespaceLabelFilter)s
+                    )
+                    %(teamJoin)s
+                  for: 30m
+                  labels:
+                    severity: warning
+
     alertNamePrefix: SB

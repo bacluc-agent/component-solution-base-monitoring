@@ -53,6 +53,29 @@ spec:
             syn: 'true'
             syn_component: solution-base-monitoring
             syn_team: '{{ $labels.label_syn_team }}'
+    - name: espejote-rules
+      rules:
+        - alert: SB_EspejoteManagedResourceNotReady
+          annotations:
+            description: |
+              The espejote ManagedResource {{ $labels.managedresource }} in namespace {{ $labels.namespace }} has not been reconciled successfully for 30 minutes.
+            summary: espejote failed to reconcile ManagedResource {{ $labels.managedresource
+              }}.
+          expr: |
+            (
+              label_replace(
+                espejote_managedresource_status_ready,
+                "namespace", "$1", "exported_namespace", "(.*)"
+              ) == 0
+              and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="test-solution-base-monitoring"}
+            )
+            * on(namespace) group_left(label_syn_team) (max by (namespace, label_syn_team) (kube_namespace_labels))
+          for: 30m
+          labels:
+            severity: warning
+            syn: 'true'
+            syn_component: solution-base-monitoring
+            syn_team: '{{ $labels.label_syn_team }}'
     - name: kube-state-rules
       rules:
         - alert: SB_KubeNamespaceNotActive
