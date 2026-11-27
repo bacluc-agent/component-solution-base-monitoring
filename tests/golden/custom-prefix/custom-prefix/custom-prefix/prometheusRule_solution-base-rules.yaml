@@ -2,12 +2,12 @@ apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
   name: solution-base-rules
-  namespace: test-solution-base-monitoring
+  namespace: custom-prefix
 spec:
   groups:
     - name: backup-rules
       rules:
-        - alert: SB_K8upJob
+        - alert: VSHN_K8upJob
           annotations:
             description: |
               There was no successful "{{ $labels.jobType }}" job in the
@@ -17,11 +17,11 @@ spec:
             (
               sum by (namespace, jobType) (
                 label_replace(
-                  rate(k8up_jobs_successful_counter[36h]),
+                  rate(k8up_jobs_successful_counter{jobType!="prune"}[36h]),
                   "namespace", "$1", "exported_namespace", "(.*)"
                 )
               ) == 0
-              and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="test-solution-base-monitoring"}
+              and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="custom-prefix"}
             )
             * on(namespace) group_left(label_syn_team) (max by (namespace, label_syn_team) (kube_namespace_labels))
           for: 1h
@@ -30,9 +30,69 @@ spec:
             syn: 'true'
             syn_component: solution-base-monitoring
             syn_team: '{{ $labels.label_syn_team }}'
+        - alert: VSHN_K8upPruneJob
+          annotations:
+            description: |
+              There was no successful "prune" job in the
+              last 11 days in the `{{ $labels.namespace }}` namespace.
+            summary: No successful "prune" job in the last 11 days
+          expr: |
+            (
+              sum by (namespace, jobType) (
+                label_replace(
+                  rate(k8up_jobs_successful_counter{jobType="prune"}[264h]),
+                  "namespace", "$1", "exported_namespace", "(.*)"
+                )
+              ) == 0
+              and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="custom-prefix"}
+            )
+            * on(namespace) group_left(label_syn_team) (max by (namespace, label_syn_team) (kube_namespace_labels))
+          for: 1h
+          labels:
+            severity: warning
+            syn: 'true'
+            syn_component: solution-base-monitoring
+            syn_team: '{{ $labels.label_syn_team }}'
+    - name: espejote-rules
+      rules:
+        - alert: VSHN_EspejoteManagedResourceNotReady
+          annotations:
+            description: |
+              The ManagedResource {{ $labels.managedresource }} in namespace {{ $labels.namespace }} has not been Ready for 30 minutes.
+              Last reported status: {{ $labels.status }}.
+              The full error message is in the ManagedResource events: kubectl -n {{ $labels.namespace }} describe managedresource {{ $labels.managedresource }}
+            summary: espejote failed to reconcile ManagedResource {{ $labels.managedresource
+              }}.
+          expr: |
+            (
+              max by (managedresource, namespace, status) (
+                label_replace(
+                  espejote_managedresource_status{status!="Ready"},
+                  "namespace", "$1", "exported_namespace", "(.*)"
+                )
+              )
+              and on (managedresource, namespace)
+              (
+                count_over_time((
+                  max by (managedresource, namespace) (
+                    label_replace(
+                      espejote_managedresource_status{status!="Ready"},
+                      "namespace", "$1", "exported_namespace", "(.*)"
+                    )
+                  )
+                )[31m:1m]) >= 31
+              )
+              and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="custom-prefix"}
+            )
+            * on(namespace) group_left(label_syn_team) (max by (namespace, label_syn_team) (kube_namespace_labels))
+          labels:
+            severity: warning
+            syn: 'true'
+            syn_component: solution-base-monitoring
+            syn_team: '{{ $labels.label_syn_team }}'
     - name: kube-state-rules
       rules:
-        - alert: SB_KubeNamespaceNotActive
+        - alert: VSHN_KubeNamespaceNotActive
           annotations:
             description: |
               Namespace {{ $labels.namespace }} is in phase {{ $labels.phase }}.
@@ -40,7 +100,7 @@ spec:
           expr: |
             (
               kube_namespace_status_phase{job="kube-state-metrics", phase!="Active"} == 1
-              and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="test-solution-base-monitoring"}
+              and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="custom-prefix"}
             )
             * on(namespace) group_left(label_syn_team) (max by (namespace, label_syn_team) (kube_namespace_labels))
           for: 5m
@@ -51,7 +111,7 @@ spec:
             syn_team: '{{ $labels.label_syn_team }}'
     - name: resource-rules
       rules:
-        - alert: SB_KubeContainerCPURequestsTooHigh
+        - alert: VSHN_KubeContainerCPURequestsTooHigh
           annotations:
             description: |
               Container {{ $labels.container }} in pod {{ $labels.namespace }}/{{ $labels.pod }} consistently uses less than 20% of its CPU request.
@@ -64,7 +124,7 @@ spec:
                   sum by (namespace, pod, container, cluster) (
                     rate(container_cpu_usage_seconds_total{container!="",container!="POD",job="kubelet",metrics_path="/metrics/cadvisor"}[5m])
                   )
-                  and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="test-solution-base-monitoring"}
+                  and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="custom-prefix"}
                 )
                 /
                 on (namespace, pod, container, cluster)
@@ -86,7 +146,7 @@ spec:
             syn: 'true'
             syn_component: solution-base-monitoring
             syn_team: '{{ $labels.label_syn_team }}'
-        - alert: SB_KubeContainerCPUUsageHigh
+        - alert: VSHN_KubeContainerCPUUsageHigh
           annotations:
             description: |
               Container {{ $labels.container }} in pod {{ $labels.namespace }}/{{ $labels.pod }} is using more than 90% of its CPU limit for more than 30 minutes.
@@ -99,7 +159,7 @@ spec:
                   sum by (namespace, pod, container, cluster) (
                     rate(container_cpu_usage_seconds_total{container!="",container!="POD",job="kubelet",metrics_path="/metrics/cadvisor"}[5m])
                   )
-                  and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="test-solution-base-monitoring"}
+                  and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="custom-prefix"}
                 )
                 /
                 on (namespace, pod, container, cluster)
@@ -123,7 +183,7 @@ spec:
             syn: 'true'
             syn_component: solution-base-monitoring
             syn_team: '{{ $labels.label_syn_team }}'
-        - alert: SB_KubeContainerMemoryRequestsTooHigh
+        - alert: VSHN_KubeContainerMemoryRequestsTooHigh
           annotations:
             description: |
               Container {{ $labels.container }} in pod {{ $labels.namespace }}/{{ $labels.pod }} consistently uses less than 20% of its memory request.
@@ -136,7 +196,7 @@ spec:
                   sum by (namespace, pod, container, cluster) (
                     container_memory_working_set_bytes{container!="",container!="POD",job="kubelet",metrics_path="/metrics/cadvisor"}
                   )
-                  and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="test-solution-base-monitoring"}
+                  and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="custom-prefix"}
                 )
                 /
                 on (namespace, pod, container, cluster)
@@ -158,7 +218,7 @@ spec:
             syn: 'true'
             syn_component: solution-base-monitoring
             syn_team: '{{ $labels.label_syn_team }}'
-        - alert: SB_KubeContainerMemoryUsageHigh
+        - alert: VSHN_KubeContainerMemoryUsageHigh
           annotations:
             description: |
               Container {{ $labels.container }} in pod {{ $labels.namespace }}/{{ $labels.pod }} is using more than 90% of its memory limit for more than 30 minutes.
@@ -171,7 +231,7 @@ spec:
                   sum by (namespace, pod, container, cluster) (
                     container_memory_working_set_bytes{container!="",container!="POD",job="kubelet",metrics_path="/metrics/cadvisor"}
                   )
-                  and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="test-solution-base-monitoring"}
+                  and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="custom-prefix"}
                 )
                 /
                 on (namespace, pod, container, cluster)
@@ -193,7 +253,7 @@ spec:
             syn: 'true'
             syn_component: solution-base-monitoring
             syn_team: '{{ $labels.label_syn_team }}'
-        - alert: SB_KubeContainerOOMKilled
+        - alert: VSHN_KubeContainerOOMKilled
           annotations:
             description: |
               Container {{ $labels.container }} in pod {{ $labels.namespace }}/{{ $labels.pod }} was OOMKilled.
@@ -204,7 +264,7 @@ spec:
             (
               (
                 (kube_pod_container_status_restarts_total{job="kube-state-metrics"}
-                and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="test-solution-base-monitoring"})
+                and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="custom-prefix"})
                 -
                 (kube_pod_container_status_restarts_total{job="kube-state-metrics"} offset 10m)
               ) >= 1
@@ -220,7 +280,7 @@ spec:
             syn_team: '{{ $labels.label_syn_team }}'
     - name: status-rules
       rules:
-        - alert: SB_KubeContainerReadinessFlap
+        - alert: VSHN_KubeContainerReadinessFlap
           annotations:
             description: |
               Container {{ $labels.container }} in pod {{ $labels.namespace }}/{{ $labels.pod }} is flapping between ready and not ready.
@@ -230,7 +290,7 @@ spec:
           expr: |
             (
               (changes(kube_pod_container_status_ready{job="kube-state-metrics"}[15m]) >= 4)
-              and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="test-solution-base-monitoring"}
+              and on(namespace) kube_namespace_labels{label_vshn_net_solution_monitoring="custom-prefix"}
               and on (namespace, pod, container, cluster)
               (kube_pod_container_status_ready{job="kube-state-metrics"} == 0)
             )

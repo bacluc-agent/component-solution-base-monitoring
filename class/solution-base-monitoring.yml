@@ -8,4 +8,4 @@ parameters:
       - input_paths:
           - ${_base_directory}/component/main.jsonnet
         input_type: jsonnet
-        output_path: solution-base-monitoring/
+        output_path: ${_instance}
